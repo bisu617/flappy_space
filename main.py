@@ -11,7 +11,16 @@ class Game:
     def __init__(self):
         pygame.init()
         # Use SCALED for crisper resolution on web
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED if sys.platform == "emscripten" else 0)
+        if sys.platform == "emscripten":
+            self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
+            # Inject CSS for sharp pixelated scaling on web
+            try:
+                import platform
+                platform.window.eval("document.getElementById('canvas').style.imageRendering = 'pixelated'")
+                platform.window.eval("document.getElementById('canvas').style.imageRendering = 'crisp-edges'")
+            except: pass
+        else:
+            self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Flappy Space: Enhanced Edition")
         self.clock = pygame.time.Clock()
         self.font_main = pygame.font.SysFont("Arial", 24, bold=True)
@@ -40,9 +49,11 @@ class Game:
         else:
             self.state = STATE_NAME_ENTRY
         
-        # Performance hint for web
-        if sys.platform == "emscripten":
-            pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
+        # Layout Constants for UI
+        self.btn_w, self.btn_h = 200, 40
+        self.btn_x = WIDTH // 2 - self.btn_w // 2
+        self.btn_y_start = 300
+        self.btn_spacing = 45
         
         # Game objects
         self.player_y = HEIGHT // 2
@@ -158,21 +169,17 @@ class Game:
                         self.input_active = False
 
                     # Check level buttons
-                    y_off = 300
                     for i, lvl in enumerate(LEVELS.keys()):
-                        rect = pygame.Rect(WIDTH // 2 - 100, y_off + i * 45, 200, 40)
+                        rect = pygame.Rect(self.btn_x, self.btn_y_start + i * self.btn_spacing, self.btn_w, self.btn_h)
                         if rect.collidepoint(mx, my):
                             self.level = lvl
                             self.start_game()
                             return
                     
-                    # Check leaderboard button (roughly where 'L' is mentioned)
-                    if my > 450:
+                    # Check leaderboard button
+                    if my > 460:
                         self.show_leaderboard()
                         return
-
-                    # If not button, start game
-                    self.start_game()
                 
                 elif self.state == STATE_PLAYING:
                     self.jump()
@@ -361,12 +368,11 @@ class Game:
             self.screen.blit(name_txt, (WIDTH // 2 - name_txt.get_width() // 2, 258))
 
             # Level Selection UI
-            y_off = 310
             for i, lvl in enumerate(LEVELS.keys()):
-                self.draw_ui_button(lvl, WIDTH // 2 - 100, y_off + i * 42, 200, 38, self.level == lvl)
+                self.draw_ui_button(lvl, self.btn_x, self.btn_y_start + i * self.btn_spacing, self.btn_w, self.btn_h, self.level == lvl)
             
             help_txt = self.font_small.render("Use numbers 1-4 to select level | L for Leaderboard", True, STAR_YELLOW)
-            self.screen.blit(help_txt, (WIDTH // 2 - help_txt.get_width() // 2, 480))
+            self.screen.blit(help_txt, (WIDTH // 2 - help_txt.get_width() // 2, 485))
 
         elif self.state == STATE_PLAYING or self.state == STATE_GAME_OVER:
             # Draw obstacles
