@@ -2,6 +2,8 @@ import json
 from urllib import request, error
 import sys
 import platform
+import random
+import asyncio
 
 # TO THE USER: Fill in your Supabase details below to enable the global leaderboard!
 # You can get these from your Supabase Project Settings -> API
@@ -138,36 +140,40 @@ async def async_get_top_scores(level=None, limit=10):
         
     url = f"{SUPABASE_URL}/rest/v1/leaderboard?{query}"
     
+    # Use a unique global variable name to avoid conflicts
+    js_var = f"lb_data_{random.randint(0, 10000)}"
     js_code = f"""
-    (function() {{
-        return fetch('{url}', {{
-            headers: {{
-                'apikey': '{SUPABASE_KEY}',
-                'Authorization': 'Bearer {SUPABASE_KEY}'
-            }}
-        }}).then(response => response.json())
-          .catch(err => {{ console.error('Fetch error:', err); return []; }});
-    }})()
+    window.{js_var} = null;
+    fetch('{url}', {{
+        headers: {{
+            'apikey': '{SUPABASE_KEY}',
+            'Authorization': 'Bearer {SUPABASE_KEY}'
+        }}
+    }}).then(r => r.json())
+      .then(data => {{ window.{js_var} = data; }})
+      .catch(e => {{ window.{js_var} = []; console.error(e); }});
     """
     try:
-        # Await the promise directly
-        data = await platform.window.eval(js_code)
+        platform.window.eval(js_code)
         
-        if not data or not isinstance(data, list):
-            print(f"No data received or invalid format: {data}")
-            return []
+        # Poll for the result (max 5 seconds)
+        for _ in range(50):
+            data = platform.window.get(js_var)
+            if data is not None:
+                # Filter unique
+                unique_data = {}
+                for entry in data:
+                    user = entry.get('username')
+                    if not user: continue
+                    score = entry.get('score', 0)
+                    if user not in unique_data or score > unique_data[user]['score']:
+                        unique_data[user] = entry
+                
+                sorted_data = sorted(unique_data.values(), key=lambda x: x.get('score', 0), reverse=True)
+                return sorted_data[:limit]
+            await asyncio.sleep(0.1)
             
-        # Filter unique in JS result
-        unique_data = {}
-        for entry in data:
-            user = entry.get('username')
-            if not user: continue
-            score = entry.get('score', 0)
-            if user not in unique_data or score > unique_data[user]['score']:
-                unique_data[user] = entry
-        
-        sorted_data = sorted(unique_data.values(), key=lambda x: x.get('score', 0), reverse=True)
-        return sorted_data[:limit]
+        return []
     except Exception as e:
         print(f"Async fetch error: {e}")
         return []
