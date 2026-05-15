@@ -12,37 +12,16 @@ class Game:
     def __init__(self):
         pygame.init()
         # Use SCALED for crisper resolution on web
-        # Use SCALED for crisper resolution on web
-        if sys.platform == "emscripten":
-            self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
-            # Inject CSS for sharp pixelated scaling and matching background on web
-            try:
-                import platform
-                platform.window.eval("document.getElementById('canvas').style.imageRendering = 'pixelated'")
-                platform.window.eval("document.getElementById('canvas').style.imageRendering = 'crisp-edges'")
-                # Match browser background and center the game perfectly
+                # Standard CSS injection for pygbag
                 platform.window.eval("document.body.style.backgroundColor = '#0a0a32'")
                 platform.window.eval("document.body.style.margin = '0'")
-                platform.window.eval("document.body.style.padding = '0'")
-                platform.window.eval("document.body.style.overflow = 'hidden'")
                 platform.window.eval("document.body.style.display = 'flex'")
                 platform.window.eval("document.body.style.justifyContent = 'center'")
                 platform.window.eval("document.body.style.alignItems = 'center'")
                 platform.window.eval("document.body.style.height = '100vh'")
-                platform.window.eval("document.body.style.width = '100vw'")
                 
-                # Target the canvas specifically
-                js_fix = """
-                const canvas = document.getElementById('canvas');
-                if (canvas) {
-                    canvas.style.position = 'relative';
-                    canvas.style.margin = 'auto';
-                    canvas.style.boxShadow = '0 0 50px rgba(0, 255, 255, 0.2)';
-                    canvas.style.borderRadius = '10px';
-                    canvas.style.border = '2px solid rgba(254, 254, 254, 0.1)';
-                }
-                """
-                platform.window.eval(js_fix)
+                # Ensure canvas is centered and has a nice shadow
+                platform.window.eval("const c = document.getElementById('canvas'); if(c) { c.style.boxShadow = '0 0 40px rgba(0,255,255,0.3)'; c.style.borderRadius = '12px'; }")
             except: pass
         else:
             self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -181,13 +160,14 @@ class Game:
 
             # Mouse / Touch support
             if event.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = event.pos
+                # Use mouse.get_pos() for SCALED coordinate mapping reliability
+                mx, my = pygame.mouse.get_pos()
                 
                 if self.state == STATE_MENU:
                     # Check Name Input Box
                     if self.name_box_rect.collidepoint(mx, my):
                         self.input_active = True
-                        return
+                        continue # Don't return, just continue the loop
                     else:
                         self.input_active = False
 
@@ -197,12 +177,12 @@ class Game:
                         if rect.collidepoint(mx, my):
                             self.level = lvl
                             self.start_game()
-                            return
+                            break # Break the for loop
                     
                     # Check leaderboard button
                     if my > 460:
                         self.show_leaderboard()
-                        return
+                        continue
                 
                 elif self.state == STATE_PLAYING:
                     self.jump()
