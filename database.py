@@ -1,5 +1,7 @@
 import json
 from urllib import request, error
+import sys
+import platform
 
 # TO THE USER: Fill in your Supabase details below to enable the global leaderboard!
 # You can get these from your Supabase Project Settings -> API
@@ -24,6 +26,20 @@ def send_to_discord(name, score, level):
         }]
     }
     
+    if sys.platform == "emscripten":
+        # Non-blocking web fetch
+        js_code = f"""
+        fetch('{DISCORD_WEBHOOK_URL}', {{
+            method: 'POST',
+            headers: {{ 'Content-Type': 'application/json' }},
+            body: JSON.stringify({json.dumps(payload)})
+        }});
+        """
+        try:
+            platform.window.eval(js_code)
+        except: pass
+        return
+
     try:
         req = request.Request(
             DISCORD_WEBHOOK_URL, 
@@ -56,6 +72,37 @@ def submit_score(name, score, level):
         "level": level
     }).encode("utf-8")
     
+    if sys.platform == "emscripten":
+        # Non-blocking web fetch for Supabase
+        js_code = f"""
+        fetch('{url}', {{
+            method: 'POST',
+            headers: {{ 
+                'apikey': '{SUPABASE_KEY}',
+                'Authorization': 'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json'
+            }},
+            body: JSON.stringify({{
+                "username": "{name}",
+                "score": {score},
+                "level": "{level}"
+            }})
+        }}).then(r => {{ 
+            if(r.ok) {{
+                // After successful submit, send to discord
+                fetch('{DISCORD_WEBHOOK_URL}', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({json.dumps(payload)})
+                }});
+            }}
+        }});
+        """
+        try:
+            platform.window.eval(js_code)
+        except: pass
+        return True
+
     try:
         req = request.Request(url, data=data, headers=headers, method="POST")
         with request.urlopen(req) as response:
