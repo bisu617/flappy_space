@@ -4,6 +4,7 @@ import sys
 from constants import *
 import database
 import threading
+import asyncio
 
 class Game:
     def __init__(self):
@@ -422,13 +423,14 @@ class Game:
 
         pygame.display.flip()
 
-    def run(self):
+    async def run(self):
         while True:
             self.handle_input()
             self.update()
             self.draw()
             self.clock.tick(FPS)
+            await asyncio.sleep(0) # Required for web
 
 if __name__ == "__main__":
     game = Game()
-    game.run()
+    asyncio.run(game.run())
