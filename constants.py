@@ -1,8 +1,8 @@
 import pygame
 
 # Screen settings
-WIDTH = 1920
-HEIGHT = 1080
+WIDTH = 900
+HEIGHT = 500
 FPS = 60
 
 # Colors
@@ -23,39 +23,39 @@ STATE_GAME_OVER = "GAME_OVER"
 STATE_LEADERBOARD = "LEADERBOARD"
 STATE_NAME_ENTRY = "NAME_ENTRY"
 
-# Level Configurations (Scaled for 1080p)
+# Level Configurations
 LEVELS = {
     "Easy": {
-        "speed": 6.5,
-        "gap": 430,
-        "gravity": 0.75,
-        "jump": -17,
-        "obstacle_dist": 750
+        "speed": 3,
+        "gap": 200,
+        "gravity": 0.35,
+        "jump": -8,
+        "obstacle_dist": 350
     },
     "Intermediate": {
-        "speed": 8.5,
-        "gap": 345,
-        "gravity": 1.1,
-        "jump": -21.5,
-        "obstacle_dist": 645
+        "speed": 4,
+        "gap": 160,
+        "gravity": 0.5,
+        "jump": -10,
+        "obstacle_dist": 300
     },
     "Hard": {
-        "speed": 13,
-        "gap": 280,
-        "gravity": 1.3,
-        "jump": -23.5,
-        "obstacle_dist": 540
+        "speed": 6,
+        "gap": 130,
+        "gravity": 0.6,
+        "jump": -11,
+        "obstacle_dist": 250
     },
     "Impossible": {
-        "speed": 19,
-        "gap": 235,
-        "gravity": 1.7,
-        "jump": -28,
-        "obstacle_dist": 430
+        "speed": 9,
+        "gap": 110,
+        "gravity": 0.8,
+        "jump": -13,
+        "obstacle_dist": 200
     }
 }
 
 # Player settings
-PLAYER_SIZE = 65
-PLAYER_X = 430
-MAX_FALL_SPEED = 25
+PLAYER_SIZE = 30
+PLAYER_X = 200
+MAX_FALL_SPEED = 12
