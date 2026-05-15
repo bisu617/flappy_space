@@ -40,6 +40,10 @@ class Game:
         else:
             self.state = STATE_NAME_ENTRY
         
+        # Performance hint for web
+        if sys.platform == "emscripten":
+            pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
+        
         # Game objects
         self.player_y = HEIGHT // 2
         self.y_velocity = 0
@@ -455,8 +459,11 @@ class Game:
             self.update()
             self.draw()
             self.clock.tick(FPS)
-            await asyncio.sleep(0) # Required for web
+            await asyncio.sleep(0.01) # Better for web CPU
+
+async def main():
+    game = Game()
+    await game.run()
 
 if __name__ == "__main__":
-    game = Game()
-    asyncio.run(game.run())
+    asyncio.run(main())
