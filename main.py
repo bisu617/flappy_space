@@ -190,7 +190,7 @@ class Game:
         self.state = STATE_LEADERBOARD
         self.leaderboard_data = [] # Show loading
         
-        def fetch():
+        async def fetch():
             data = database.get_top_scores(level=self.level, limit=50)
             # Filter unique users (keep highest score)
             unique_data = {}
@@ -203,17 +203,23 @@ class Game:
             sorted_data = sorted(unique_data.values(), key=lambda x: x['score'], reverse=True)
             self.leaderboard_data = sorted_data[:10]
             
-        threading.Thread(target=fetch, daemon=True).start()
+        if sys.platform == "emscripten":
+            asyncio.create_task(fetch())
+        else:
+            threading.Thread(target=lambda: asyncio.run(fetch()), daemon=True).start()
 
     def submit_score(self):
         if self.score <= 0: return
         self.submitting = True
         
-        def task():
+        async def task():
             database.submit_score(self.player_name, self.score, self.level)
             self.submitting = False
             
-        threading.Thread(target=task, daemon=True).start()
+        if sys.platform == "emscripten":
+            asyncio.create_task(task())
+        else:
+            threading.Thread(target=lambda: asyncio.run(task()), daemon=True).start()
 
     def update(self):
         # Update cursor blink
@@ -275,23 +281,34 @@ class Game:
             pygame.mixer.music.stop()
 
     def save_user_data(self):
-        try:
-            import json
-            with open("user_prefs.json", "w") as f:
-                json.dump({"name": self.player_name}, f)
-        except:
-            pass
+        if sys.platform == "emscripten":
+            try:
+                import platform
+                platform.window.localStorage.setItem("player_name", self.player_name)
+            except: pass
+        else:
+            try:
+                import json
+                with open("user_prefs.json", "w") as f:
+                    json.dump({"name": self.player_name}, f)
+            except: pass
 
     def load_user_data(self):
-        try:
-            import json
-            import os
-            if os.path.exists("user_prefs.json"):
-                with open("user_prefs.json", "r") as f:
-                    data = json.load(f)
-                    self.player_name = data.get("name", "")
-        except:
-            self.player_name = ""
+        if sys.platform == "emscripten":
+            try:
+                import platform
+                name = platform.window.localStorage.getItem("player_name")
+                if name: self.player_name = name
+            except: self.player_name = ""
+        else:
+            try:
+                import json
+                import os
+                if os.path.exists("user_prefs.json"):
+                    with open("user_prefs.json", "r") as f:
+                        data = json.load(f)
+                        self.player_name = data.get("name", "")
+            except: self.player_name = ""
 
     def draw_stars(self):
         for s in self.stars:
