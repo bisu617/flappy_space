@@ -11,8 +11,9 @@ class Game:
     def __init__(self):
         pygame.init()
         # Use SCALED for crisper resolution on web
+        # Use SCALED for crisper resolution on web
         if sys.platform == "emscripten":
-            self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
+            self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
             # Inject CSS for sharp pixelated scaling on web
             try:
                 import platform
@@ -23,9 +24,9 @@ class Game:
             self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Flappy Space: Enhanced Edition")
         self.clock = pygame.time.Clock()
-        self.font_main = pygame.font.SysFont("Arial", 24, bold=True)
-        self.font_title = pygame.font.SysFont("Arial", 48, bold=True)
-        self.font_small = pygame.font.SysFont("Arial", 18)
+        self.font_main = pygame.font.SysFont("Arial", 50, bold=True)
+        self.font_title = pygame.font.SysFont("Arial", 100, bold=True)
+        self.font_small = pygame.font.SysFont("Arial", 36)
         
         # Enable key repetition for better text input
         pygame.key.set_repeat(400, 50)
@@ -43,17 +44,14 @@ class Game:
         self.cursor_visible = True
         self.cursor_timer = 0
         
-        # If we already have a name, go straight to menu
-        if self.player_name:
-            self.state = STATE_MENU
-        else:
-            self.state = STATE_NAME_ENTRY
+        # Always go to name entry to allow user to confirm or change name
+        self.state = STATE_NAME_ENTRY
         
-        # Layout Constants for UI
-        self.btn_w, self.btn_h = 200, 40
+        # Layout Constants for UI (Scaled for 1080p)
+        self.btn_w, self.btn_h = 430, 85
         self.btn_x = WIDTH // 2 - self.btn_w // 2
-        self.btn_y_start = 300
-        self.btn_spacing = 45
+        self.btn_y_start = 650
+        self.btn_spacing = 100
         
         # Game objects
         self.player_y = HEIGHT // 2
@@ -80,7 +78,7 @@ class Game:
         self.y_velocity = 0
         self.score = 0
         self.obstacles = [WIDTH + i * config["obstacle_dist"] for i in range(5)]
-        self.obstacle_heights = [random.randint(50, 300) for _ in range(5)]
+        self.obstacle_heights = [random.randint(100, 650) for _ in range(5)]
         self.passed_obstacles = [False for _ in range(5)]
         self.playing_started = False
 
@@ -177,7 +175,7 @@ class Game:
                             return
                     
                     # Check leaderboard button
-                    if my > 460:
+                    if my > 1000:
                         self.show_leaderboard()
                         return
                 
@@ -270,17 +268,17 @@ class Game:
                     self.passed_obstacles[i] = True
                     
                 # Respawn
-                if self.obstacles[i] < -30:
+                if self.obstacles[i] < -70:
                     max_x = max(self.obstacles)
                     self.obstacles[i] = max_x + config["obstacle_dist"]
-                    self.obstacle_heights[i] = random.randint(50, 300)
+                    self.obstacle_heights[i] = random.randint(100, 650)
                     self.passed_obstacles[i] = False
             
             # Check collisions
             player_rect = pygame.Rect(PLAYER_X, self.player_y, PLAYER_SIZE, PLAYER_SIZE)
             for i in range(len(self.obstacles)):
-                top_rect = pygame.Rect(self.obstacles[i], 0, 30, self.obstacle_heights[i])
-                bottom_rect = pygame.Rect(self.obstacles[i], self.obstacle_heights[i] + config["gap"], 30, HEIGHT)
+                top_rect = pygame.Rect(self.obstacles[i], 0, 65, self.obstacle_heights[i])
+                bottom_rect = pygame.Rect(self.obstacles[i], self.obstacle_heights[i] + config["gap"], 65, HEIGHT)
                 if player_rect.colliderect(top_rect) or player_rect.colliderect(bottom_rect):
                     self.game_over()
 
@@ -340,8 +338,8 @@ class Game:
 
     def draw_ui_button(self, text, x, y, w, h, active=False):
         color = CYAN if active else DARK_BLUE
-        pygame.draw.rect(self.screen, color, (x, y, w, h), border_radius=8)
-        pygame.draw.rect(self.screen, WHITE, (x, y, w, h), 2, border_radius=8)
+        pygame.draw.rect(self.screen, color, (x, y, w, h), border_radius=15)
+        pygame.draw.rect(self.screen, WHITE, (x, y, w, h), 3, border_radius=15)
         txt = self.font_main.render(text, True, WHITE if not active else BLACK)
         self.screen.blit(txt, (x + (w - txt.get_width()) // 2, y + (h - txt.get_height()) // 2))
 
@@ -351,40 +349,40 @@ class Game:
         
         if self.state == STATE_MENU:
             title = self.font_title.render("FLAPPY SPACE", True, CYAN)
-            self.screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 100))
+            self.screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 200))
             
             instr = self.font_main.render("Press SPACE to Start", True, WHITE)
-            self.screen.blit(instr, (WIDTH // 2 - instr.get_width() // 2, 190))
+            self.screen.blit(instr, (WIDTH // 2 - instr.get_width() // 2, 380))
             
             # Name Input Field
             name_label = self.font_small.render("PLAYER NAME (CLICK TO EDIT):", True, STAR_YELLOW)
-            self.screen.blit(name_label, (WIDTH // 2 - name_label.get_width() // 2, 230))
+            self.screen.blit(name_label, (WIDTH // 2 - name_label.get_width() // 2, 480))
             
-            name_rect = pygame.Rect(WIDTH // 2 - 100, 255, 200, 35)
-            pygame.draw.rect(self.screen, CYAN if self.input_active else DARK_BLUE, name_rect, border_radius=5)
-            pygame.draw.rect(self.screen, WHITE, name_rect, 2, border_radius=5)
+            name_rect = pygame.Rect(WIDTH // 2 - 200, 525, 400, 70)
+            pygame.draw.rect(self.screen, CYAN if self.input_active else DARK_BLUE, name_rect, border_radius=10)
+            pygame.draw.rect(self.screen, WHITE, name_rect, 3, border_radius=10)
             
             name_txt = self.font_main.render(self.player_name, True, WHITE)
-            self.screen.blit(name_txt, (WIDTH // 2 - name_txt.get_width() // 2, 258))
+            self.screen.blit(name_txt, (WIDTH // 2 - name_txt.get_width() // 2, 532))
 
             # Level Selection UI
             for i, lvl in enumerate(LEVELS.keys()):
                 self.draw_ui_button(lvl, self.btn_x, self.btn_y_start + i * self.btn_spacing, self.btn_w, self.btn_h, self.level == lvl)
             
             help_txt = self.font_small.render("Use numbers 1-4 to select level | L for Leaderboard", True, STAR_YELLOW)
-            self.screen.blit(help_txt, (WIDTH // 2 - help_txt.get_width() // 2, 485))
+            self.screen.blit(help_txt, (WIDTH // 2 - help_txt.get_width() // 2, 1040))
 
         elif self.state == STATE_PLAYING or self.state == STATE_GAME_OVER:
             # Draw obstacles
             config = LEVELS[self.level]
             for i in range(len(self.obstacles)):
-                pygame.draw.rect(self.screen, CYAN, (self.obstacles[i], 0, 30, self.obstacle_heights[i]))
-                pygame.draw.rect(self.screen, CYAN, (self.obstacles[i], self.obstacle_heights[i] + config["gap"], 30, HEIGHT))
+                pygame.draw.rect(self.screen, CYAN, (self.obstacles[i], 0, 65, self.obstacle_heights[i]))
+                pygame.draw.rect(self.screen, CYAN, (self.obstacles[i], self.obstacle_heights[i] + config["gap"], 65, HEIGHT))
             
             # Draw player
-            pygame.draw.rect(self.screen, LAVA_RED, (PLAYER_X, self.player_y, PLAYER_SIZE, PLAYER_SIZE), border_radius=8)
-            pygame.draw.circle(self.screen, NEON_GREEN, (PLAYER_X + 25, self.player_y + 15), 10)
-            pygame.draw.circle(self.screen, BLACK, (PLAYER_X + 25, self.player_y + 15), 4)
+            pygame.draw.rect(self.screen, LAVA_RED, (PLAYER_X, self.player_y, PLAYER_SIZE, PLAYER_SIZE), border_radius=15)
+            pygame.draw.circle(self.screen, NEON_GREEN, (PLAYER_X + 54, self.player_y + 32), 22)
+            pygame.draw.circle(self.screen, BLACK, (PLAYER_X + 54, self.player_y + 32), 9)
             
             # HUD
             score_txt = self.font_main.render(f"Score: {self.score}", True, WHITE)
@@ -394,7 +392,7 @@ class Game:
             
             if self.state == STATE_PLAYING and not self.playing_started:
                 hint_txt = self.font_main.render("CLICK OR SPACE TO JUMP!", True, WHITE)
-                self.screen.blit(hint_txt, (WIDTH // 2 - hint_txt.get_width() // 2, HEIGHT // 2 + 50))
+                self.screen.blit(hint_txt, (WIDTH // 2 - hint_txt.get_width() // 2, HEIGHT // 2 + 100))
             
             if self.state == STATE_GAME_OVER:
                 overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -410,12 +408,12 @@ class Game:
                 restart_txt = self.font_main.render("Press SPACE to Restart", True, WHITE)
                 menu_txt = self.font_small.render("Press M for Main Menu", True, WHITE)
                 
-                self.screen.blit(over_txt, (WIDTH // 2 - over_txt.get_width() // 2, 120))
-                self.screen.blit(score_final, (WIDTH // 2 - score_final.get_width() // 2, 190))
-                self.screen.blit(best_txt, (WIDTH // 2 - best_txt.get_width() // 2, 230))
-                self.screen.blit(submit_txt, (WIDTH // 2 - submit_txt.get_width() // 2, 300))
-                self.screen.blit(restart_txt, (WIDTH // 2 - restart_txt.get_width() // 2, 380))
-                self.screen.blit(menu_txt, (WIDTH // 2 - menu_txt.get_width() // 2, 430))
+                self.screen.blit(over_txt, (WIDTH // 2 - over_txt.get_width() // 2, 250))
+                self.screen.blit(score_final, (WIDTH // 2 - score_final.get_width() // 2, 400))
+                self.screen.blit(best_txt, (WIDTH // 2 - best_txt.get_width() // 2, 480))
+                self.screen.blit(submit_txt, (WIDTH // 2 - submit_txt.get_width() // 2, 600))
+                self.screen.blit(restart_txt, (WIDTH // 2 - restart_txt.get_width() // 2, 750))
+                self.screen.blit(menu_txt, (WIDTH // 2 - menu_txt.get_width() // 2, 850))
 
         elif self.state == STATE_LEADERBOARD:
             title = self.font_title.render(f"TOP {self.level.upper()}S", True, STAR_YELLOW)
@@ -423,14 +421,14 @@ class Game:
             
             if not self.leaderboard_data:
                 msg = self.font_main.render(f"No scores yet for {self.level}", True, WHITE)
-                self.screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, 200))
+                self.screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, 400))
             else:
                 for i, entry in enumerate(self.leaderboard_data):
                     txt = self.font_main.render(f"{i+1}. {entry['username']} - {entry['score']}", True, WHITE)
-                    self.screen.blit(txt, (WIDTH // 2 - 120, 130 + i * 30))
+                    self.screen.blit(txt, (WIDTH // 2 - 250, 250 + i * 60))
             
             back_txt = self.font_small.render("Press M to go back", True, CYAN)
-            self.screen.blit(back_txt, (WIDTH // 2 - back_txt.get_width() // 2, 450))
+            self.screen.blit(back_txt, (WIDTH // 2 - back_txt.get_width() // 2, 950))
 
         elif self.state == STATE_NAME_ENTRY:
             overlay = pygame.Surface((WIDTH, HEIGHT))
@@ -441,21 +439,21 @@ class Game:
             title = self.font_title.render("WELCOME EXPLORER", True, CYAN)
             prompt = self.font_main.render("Identify yourself, Pilot:", True, WHITE)
             
-            self.screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 120))
-            self.screen.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, 200))
+            self.screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 250))
+            self.screen.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, 400))
             
             # Sleek Input Box
-            name_rect = pygame.Rect(WIDTH // 2 - 200, 250, 400, 60)
-            pygame.draw.rect(self.screen, DARK_BLUE, name_rect, border_radius=15)
-            pygame.draw.rect(self.screen, CYAN if self.cursor_visible else WHITE, name_rect, 3, border_radius=15)
+            name_rect = pygame.Rect(WIDTH // 2 - 400, 500, 800, 120)
+            pygame.draw.rect(self.screen, DARK_BLUE, name_rect, border_radius=30)
+            pygame.draw.rect(self.screen, CYAN if self.cursor_visible else WHITE, name_rect, 5, border_radius=30)
             
             # Render name with cursor
             display_name = self.player_name + ("|" if self.cursor_visible else "")
             name_txt = self.font_title.render(display_name, True, WHITE)
-            self.screen.blit(name_txt, (WIDTH // 2 - name_txt.get_width() // 2, 255))
+            self.screen.blit(name_txt, (WIDTH // 2 - name_txt.get_width() // 2, 510))
             
             instr = self.font_small.render("Press ENTER to verify and start mission", True, STAR_YELLOW)
-            self.screen.blit(instr, (WIDTH // 2 - instr.get_width() // 2, 340))
+            self.screen.blit(instr, (WIDTH // 2 - instr.get_width() // 2, 680))
 
         pygame.display.flip()
 
