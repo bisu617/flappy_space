@@ -17,11 +17,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          cache: 'pip' # This makes it MUCH faster
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pygbag
+      - name: Install pygbag
+        run: pip install pygbag
 
       - name: Build Web Version
         run: |
