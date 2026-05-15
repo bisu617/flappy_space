@@ -24,8 +24,9 @@ jobs:
 
       - name: Build Web Version
         run: |
-          # The '.' means build the current directory
           python -m pygbag --build .
+          # Copy our custom premium index.html over the default one
+          cp index.html build/web/index.html
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
