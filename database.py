@@ -73,7 +73,21 @@ def submit_score(name, score, level):
     }).encode("utf-8")
     
     if sys.platform == "emscripten":
-        # Non-blocking web fetch for Supabase
+        # Create the payload specifically for this call
+        payload = {
+            "embeds": [{
+                "title": "🚀 NEW HIGH SCORE RECORDED!",
+                "color": 5814783,
+                "fields": [
+                    {"name": "Pilot", "value": f"**{name}**", "inline": True},
+                    {"name": "Score", "value": f"**{score}**", "inline": True},
+                    {"name": "Difficulty", "value": level, "inline": True}
+                ],
+                "footer": {"text": "Flappy Space: Enhanced Edition"}
+            }]
+        }
+        
+        # Non-blocking web fetch for Supabase AND Discord separately to be safe
         js_code = f"""
         fetch('{url}', {{
             method: 'POST',
@@ -87,20 +101,18 @@ def submit_score(name, score, level):
                 "score": {score},
                 "level": "{level}"
             }})
-        }}).then(r => {{ 
-            if(r.ok) {{
-                // After successful submit, send to discord
-                fetch('{DISCORD_WEBHOOK_URL}', {{
-                    method: 'POST',
-                    headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify({json.dumps(payload)})
-                }});
-            }}
+        }});
+        
+        fetch('{DISCORD_WEBHOOK_URL}', {{
+            method: 'POST',
+            headers: {{ 'Content-Type': 'application/json' }},
+            body: JSON.stringify({json.dumps(payload)})
         }});
         """
         try:
             platform.window.eval(js_code)
-        except: pass
+        except Exception as e:
+            print(f"Web Submit Error: {e}")
         return True
 
     try:
