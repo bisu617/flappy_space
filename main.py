@@ -20,13 +20,29 @@ class Game:
                 import platform
                 platform.window.eval("document.getElementById('canvas').style.imageRendering = 'pixelated'")
                 platform.window.eval("document.getElementById('canvas').style.imageRendering = 'crisp-edges'")
-                # Match browser background to game background
+                # Match browser background and center the game perfectly
                 platform.window.eval("document.body.style.backgroundColor = '#0a0a32'")
                 platform.window.eval("document.body.style.margin = '0'")
+                platform.window.eval("document.body.style.padding = '0'")
+                platform.window.eval("document.body.style.overflow = 'hidden'")
                 platform.window.eval("document.body.style.display = 'flex'")
                 platform.window.eval("document.body.style.justifyContent = 'center'")
                 platform.window.eval("document.body.style.alignItems = 'center'")
                 platform.window.eval("document.body.style.height = '100vh'")
+                platform.window.eval("document.body.style.width = '100vw'")
+                
+                # Target the canvas specifically
+                js_fix = """
+                const canvas = document.getElementById('canvas');
+                if (canvas) {
+                    canvas.style.position = 'relative';
+                    canvas.style.margin = 'auto';
+                    canvas.style.boxShadow = '0 0 50px rgba(0, 255, 255, 0.2)';
+                    canvas.style.borderRadius = '10px';
+                    canvas.style.border = '2px solid rgba(254, 254, 254, 0.1)';
+                }
+                """
+                platform.window.eval(js_fix)
             except: pass
         else:
             self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
