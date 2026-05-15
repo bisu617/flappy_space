@@ -74,8 +74,10 @@ class Game:
         # Layout Constants for UI (Restored for 900x500)
         self.btn_w, self.btn_h = 200, 40
         self.btn_x = WIDTH // 2 - self.btn_w // 2
-        self.btn_y_start = 300
+        self.btn_y_start = 310
         self.btn_spacing = 45
+        
+        self.name_box_rect = pygame.Rect(WIDTH // 2 - 100, 255, 200, 35)
         
         # Game objects
         self.player_y = HEIGHT // 2
@@ -179,12 +181,11 @@ class Game:
 
             # Mouse / Touch support
             if event.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = pygame.mouse.get_pos()
+                mx, my = event.pos
                 
                 if self.state == STATE_MENU:
                     # Check Name Input Box
-                    name_rect = pygame.Rect(WIDTH // 2 - 100, 240, 200, 35)
-                    if name_rect.collidepoint(mx, my):
+                    if self.name_box_rect.collidepoint(mx, my):
                         self.input_active = True
                         return
                     else:
@@ -361,9 +362,13 @@ class Game:
                 s[1] = random.randint(0, HEIGHT)
 
     def draw_ui_button(self, text, x, y, w, h, active=False):
-        color = CYAN if active else DARK_BLUE
+        # Check for hover state
+        mx, my = pygame.mouse.get_pos()
+        hover = pygame.Rect(x, y, w, h).collidepoint(mx, my)
+        
+        color = CYAN if active else (DARK_BLUE if not hover else (30, 30, 100))
         pygame.draw.rect(self.screen, color, (x, y, w, h), border_radius=8)
-        pygame.draw.rect(self.screen, WHITE, (x, y, w, h), 2, border_radius=8)
+        pygame.draw.rect(self.screen, WHITE if not hover else CYAN, (x, y, w, h), 2 if not hover else 3, border_radius=8)
         txt = self.font_main.render(text, True, WHITE if not active else BLACK)
         self.screen.blit(txt, (x + (w - txt.get_width()) // 2, y + (h - txt.get_height()) // 2))
 
@@ -382,9 +387,8 @@ class Game:
             name_label = self.font_small.render("PLAYER NAME (CLICK TO EDIT):", True, STAR_YELLOW)
             self.screen.blit(name_label, (WIDTH // 2 - name_label.get_width() // 2, 230))
             
-            name_rect = pygame.Rect(WIDTH // 2 - 100, 255, 200, 35)
-            pygame.draw.rect(self.screen, CYAN if self.input_active else DARK_BLUE, name_rect, border_radius=5)
-            pygame.draw.rect(self.screen, WHITE, name_rect, 2, border_radius=5)
+            pygame.draw.rect(self.screen, CYAN if self.input_active else DARK_BLUE, self.name_box_rect, border_radius=5)
+            pygame.draw.rect(self.screen, WHITE, self.name_box_rect, 2, border_radius=5)
             
             name_txt = self.font_main.render(self.player_name, True, WHITE)
             self.screen.blit(name_txt, (WIDTH // 2 - name_txt.get_width() // 2, 258))
