@@ -5,6 +5,36 @@ from urllib import request, error
 # You can get these from your Supabase Project Settings -> API
 SUPABASE_URL = "https://ysbnmdxkdblbzooozryo.supabase.co"
 SUPABASE_KEY = "sb_publishable_zZ4_gcTU3Q6DO-EMzh1pMg_OsMGGYIH"
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1504734664211042438/J8_2mhuJM3fi-ybm_DtAqVCgqIyo7rPv8sfFrFdcZus56mL9ngFDReS9hQOQXR3jVcr1"
+
+def send_to_discord(name, score, level):
+    """Sends a formatted score card to Discord via Webhook"""
+    if not DISCORD_WEBHOOK_URL: return
+    
+    payload = {
+        "embeds": [{
+            "title": "🚀 NEW HIGH SCORE RECORDED!",
+            "color": 5814783, # Cyan
+            "fields": [
+                {"name": "Pilot", "value": f"**{name}**", "inline": True},
+                {"name": "Score", "value": f"**{score}**", "inline": True},
+                {"name": "Difficulty", "value": level, "inline": True}
+            ],
+            "footer": {"text": "Flappy Space: Enhanced Edition"}
+        }]
+    }
+    
+    try:
+        req = request.Request(
+            DISCORD_WEBHOOK_URL, 
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with request.urlopen(req) as response:
+            pass
+    except Exception as e:
+        print(f"Discord error: {e}")
 
 def submit_score(name, score, level):
     """Submits a score to Supabase via REST API"""
@@ -29,7 +59,11 @@ def submit_score(name, score, level):
     try:
         req = request.Request(url, data=data, headers=headers, method="POST")
         with request.urlopen(req) as response:
-            return response.status == 201
+            if response.status == 201:
+                # Also send to Discord!
+                send_to_discord(name, score, level)
+                return True
+            return False
     except Exception as e:
         print(f"Error submitting score: {e}")
         return False
