@@ -127,26 +127,34 @@ async def async_get_top_scores(level=None, limit=10):
     url = f"{SUPABASE_URL}/rest/v1/leaderboard?{query}"
     
     js_code = f"""
-    (async () => {{
-        const response = await fetch('{url}', {{
+    (function() {{
+        return fetch('{url}', {{
             headers: {{
                 'apikey': '{SUPABASE_KEY}',
                 'Authorization': 'Bearer {SUPABASE_KEY}'
             }}
-        }});
-        return await response.json();
+        }}).then(response => response.json())
+          .catch(err => {{ console.error('Fetch error:', err); return []; }});
     }})()
     """
     try:
+        # Await the promise directly
         data = await platform.window.eval(js_code)
+        
+        if not data or not isinstance(data, list):
+            print(f"No data received or invalid format: {data}")
+            return []
+            
         # Filter unique in JS result
         unique_data = {}
         for entry in data:
-            user = entry['username']
-            if user not in unique_data or entry['score'] > unique_data[user]['score']:
+            user = entry.get('username')
+            if not user: continue
+            score = entry.get('score', 0)
+            if user not in unique_data or score > unique_data[user]['score']:
                 unique_data[user] = entry
         
-        sorted_data = sorted(unique_data.values(), key=lambda x: x['score'], reverse=True)
+        sorted_data = sorted(unique_data.values(), key=lambda x: x.get('score', 0), reverse=True)
         return sorted_data[:limit]
     except Exception as e:
         print(f"Async fetch error: {e}")
