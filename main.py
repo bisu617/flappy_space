@@ -5,6 +5,7 @@ from constants import *
 import database
 import threading
 import asyncio
+import platform
 
 class Game:
     def __init__(self):
@@ -283,9 +284,10 @@ class Game:
     def save_user_data(self):
         if sys.platform == "emscripten":
             try:
-                import platform
-                platform.window.localStorage.setItem("player_name", self.player_name)
-            except: pass
+                # Use a direct JS call to be 100% sure
+                platform.window.eval(f"localStorage.setItem('player_name', '{self.player_name}')")
+            except Exception as e:
+                print(f"Web Save Error: {e}")
         else:
             try:
                 import json
@@ -296,10 +298,13 @@ class Game:
     def load_user_data(self):
         if sys.platform == "emscripten":
             try:
-                import platform
-                name = platform.window.localStorage.getItem("player_name")
-                if name: self.player_name = name
-            except: self.player_name = ""
+                # Use direct JS eval to pull from storage
+                name = platform.window.eval("localStorage.getItem('player_name')")
+                if name and name != "undefined" and name != "null":
+                    self.player_name = name
+            except Exception as e:
+                print(f"Web Load Error: {e}")
+                self.player_name = ""
         else:
             try:
                 import json
