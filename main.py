@@ -12,7 +12,10 @@ class Game:
     def __init__(self):
         pygame.init()
         # Use SCALED for crisper resolution on web
-                # Standard CSS injection for pygbag
+        if sys.platform == "emscripten":
+            self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
+            # Standard CSS injection for pygbag
+            try:
                 platform.window.eval("document.body.style.backgroundColor = '#0a0a32'")
                 platform.window.eval("document.body.style.margin = '0'")
                 platform.window.eval("document.body.style.display = 'flex'")
@@ -25,6 +28,7 @@ class Game:
             except: pass
         else:
             self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+            
         pygame.display.set_caption("Flappy Space: Enhanced Edition")
         self.clock = pygame.time.Clock()
         self.font_main = pygame.font.SysFont("Arial", 24, bold=True)
