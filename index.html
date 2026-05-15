@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Space</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a32 0%, #1a1a4a 100%);
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #gameContainer {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+        }
+        
+        canvas {
+            border: 3px solid #00ffff;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+        
+        #instructions {
+            color: #ffff00;
+            margin-top: 15px;
+            font-size: 16px;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+        }
+        
+        .controls {
+            color: #00ffff;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="900" height="500"></canvas>
+        <div id="instructions">Click or Press SPACE to start/jump</div>
+        <div class="controls">Desktop: SPACE | Mobile: TAP SCREEN</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Constants - EXACTLY from your Pygame version
+        const WIDTH = 900;
+        const HEIGHT = 500;
+        const FPS = 60;
+        
+        // Colors - EXACTLY from your Pygame version
+        const CYAN = '#00ffff';
+        const BLACK = '#000000';
+        const WHITE = '#fefefe';
+        const SPACE_BLUE = '#0a0a32';
+        const STAR_YELLOW = '#ffffc8';
+        const NEON_GREEN = '#39ff14';
+        const LAVA_RED = '#ff5000';
+        
+        // Player properties - EXACTLY from your Pygame version
+        let player_x = 200;
+        let player_y = HEIGHT / 2;
+        const player_width = 30;
+        const player_height = 30;
+        let y_velocity = 0;
+        const gravity = 0.5;  // EXACT same as your Python code
+        const jump_strength = -10;  // EXACT same as your Python code
+        const max_fall_speed = 10;  // EXACT same as your Python code
+        
+        // Obstacle properties - EXACTLY from your Pygame version
+        let obstacles = [];
+        let obstacle_heights = [];
+        let passed_obstacles = [];
+        const gap = 150;  // EXACT same as your Python code
+        const speed = 3;  // EXACT same as your Python code
+        
+        // Initialize obstacles exactly like Python version
+        for (let i = 0; i < 5; i++) {
+            obstacles.push(WIDTH + i * 300);
+            obstacle_heights.push(Math.floor(Math.random() * (300 - 50 + 1)) + 50);  // random.randint(50, 300)
+            passed_obstacles.push(false);
+        }
+        
+        // Game state
+        let score = 0;
+        let high_score = 0;
+        let game_over = false;
+        let game_started = false;
+        
+        // Stars - EXACTLY from your Pygame version
+        let stars = [];
+        for (let i = 0; i < 100; i++) {
+            stars.push({
+                x: Math.floor(Math.random() * WIDTH),
+                y: Math.floor(Math.random() * HEIGHT)
+            });
+        }
+        
+        // Draw stars - EXACTLY like your draw_stars() function
+        function draw_stars() {
+            ctx.fillStyle = WHITE;
+            stars.forEach(s => {
+                ctx.fillRect(s.x, s.y, 3, 3);  // 3x3 pixels like your code
+                s.x -= 0.5;  // EXACT same speed
+                if (s.x < 0) {
+                    s.x = WIDTH;
+                    s.y = Math.floor(Math.random() * HEIGHT);
+                }
+            });
+        }
+        
+        // Draw player - EXACTLY like your draw_player() function
+        function draw_player(x, y) {
+            // Main body - rounded rectangle
+            ctx.fillStyle = LAVA_RED;
+            ctx.beginPath();
+            ctx.roundRect(x, y, player_width, player_height, 12);
+            ctx.fill();
+            
+            // Eye (outer green circle)
+            ctx.fillStyle = NEON_GREEN;
+            ctx.beginPath();
+            ctx.arc(x + 25, y + 15, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Pupil (inner black circle)
+            ctx.fillStyle = BLACK;
+            ctx.beginPath();
+            ctx.arc(x + 24, y + 12, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Return collision rect
+            return {x: x, y: y, width: player_width, height: player_height};
+        }
+        
+        // Draw obstacles - EXACTLY like your draw_obstacles() function
+        function draw_obstacles() {
+            let collision = false;
+            ctx.fillStyle = CYAN;
+            
+            for (let i = 0; i < obstacles.length; i++) {
+                // Top rectangle
+                const top_rect = {
+                    x: obstacles[i],
+                    y: 0,
+                    width: 30,
+                    height: obstacle_heights[i]
+                };
+                
+                // Bottom rectangle
+                const bottom_rect = {
+                    x: obstacles[i],
+                    y: obstacle_heights[i] + gap,
+                    width: 30,
+                    height: HEIGHT - (obstacle_heights[i] + gap)
+                };
+                
+                ctx.fillRect(top_rect.x, top_rect.y, top_rect.width, top_rect.height);
+                ctx.fillRect(bottom_rect.x, bottom_rect.y, bottom_rect.width, bottom_rect.height);
+                
+                // Check collision with player
+                const player_rect = {x: player_x, y: player_y, width: player_width, height: player_height};
+                if (colliderect(player_rect, top_rect) || colliderect(player_rect, bottom_rect)) {
+                    collision = true;
+                }
+            }
+            
+            return collision;
+        }
+        
+        // Collision detection helper (like pygame's colliderect)
+        function colliderect(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+        
+        // Reset game - EXACTLY like your reset logic
+        function reset_game() {
+            player_y = HEIGHT / 2;
+            y_velocity = 0;
+            obstacles = [];
+            obstacle_heights = [];
+            passed_obstacles = [];
+            for (let i = 0; i < 5; i++) {
+                obstacles.push(WIDTH + i * 300);
+                obstacle_heights.push(Math.floor(Math.random() * (300 - 50 + 1)) + 50);
+                passed_obstacles.push(false);
+            }
+            score = 0;
+            game_over = false;
+        }
+        
+        // Main game loop - EXACTLY following your Python while loop
+        function gameLoop() {
+            // Fill background
+            ctx.fillStyle = SPACE_BLUE;
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            
+            // Draw stars
+            draw_stars();
+            
+            if (game_started) {
+                // Apply gravity - EXACT same logic
+                y_velocity += gravity;
+                if (y_velocity > max_fall_speed) {
+                    y_velocity = max_fall_speed;
+                }
+                player_y += y_velocity;
+                
+                // Boundary checks - EXACT same logic
+                if (player_y < 0) {
+                    player_y = 0;
+                    y_velocity = 0;
+                }
+                if (player_y > HEIGHT - player_height) {
+                    player_y = HEIGHT - player_height;
+                    game_over = true;
+                }
+                
+                // Draw player
+                const player_rect = draw_player(player_x, player_y);
+                
+                // Update obstacles - EXACT same logic
+                for (let i = 0; i < obstacles.length; i++) {
+                    if (!game_over) {
+                        obstacles[i] -= speed;
+                        
+                        // Score when passing obstacle
+                        if (!passed_obstacles[i] && player_x > obstacles[i] + 30) {
+                            score += 1;
+                            passed_obstacles[i] = true;
+                        }
+                        
+                        // Respawn obstacle
+                        if (obstacles[i] < -30) {
+                            const max_x = Math.max(...obstacles);
+                            obstacles[i] = max_x + 300;
+                            obstacle_heights[i] = Math.floor(Math.random() * (300 - 50 + 1)) + 50;
+                            passed_obstacles[i] = false;
+                        }
+                    }
+                }
+                
+                // Draw obstacles and check collision
+                if (draw_obstacles()) {
+                    game_over = true;
+                }
+                
+                // Update high score
+                if (score > high_score) {
+                    high_score = score;
+                }
+                
+                // Display score
+                ctx.fillStyle = WHITE;
+                ctx.font = '20px Arial';
+                ctx.fillText(`Score: ${score}`, 10, 25);
+                
+                ctx.fillStyle = STAR_YELLOW;
+                ctx.fillText(`High Score: ${high_score}`, 10, 50);
+                
+                if (game_over) {
+                    ctx.fillStyle = STAR_YELLOW;
+                    ctx.font = '20px Arial';
+                    ctx.fillText('Game Over! Press SPACE to restart', 200, HEIGHT / 2);
+                }
+                
+            } else {
+                // Start screen
+                ctx.fillStyle = STAR_YELLOW;
+                ctx.font = '20px Arial';
+                ctx.fillText('Press SPACE to Start Flappy Space', 250, HEIGHT / 2);
+            }
+            
+            // Continue game loop at 60 FPS
+            setTimeout(() => requestAnimationFrame(gameLoop), 1000 / FPS);
+        }
+        
+        // Input handling - matching your pygame events
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                
+                if (!game_started) {
+                    game_started = true;
+                } else if (game_over) {
+                    reset_game();
+                } else {
+                    y_velocity = jump_strength;
+                }
+            }
+        });
+        
+        // Touch/click support for mobile
+        canvas.addEventListener('click', () => {
+            if (!game_started) {
+                game_started = true;
+            } else if (game_over) {
+                reset_game();
+            } else {
+                y_velocity = jump_strength;
+            }
+        });
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!game_started) {
+                game_started = true;
+            } else if (game_over) {
+                reset_game();
+            } else {
+                y_velocity = jump_strength;
+            }
+        });
+        
+        // Start the game loop
+        gameLoop();
+    </script>
+</body>
+</html>
