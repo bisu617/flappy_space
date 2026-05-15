@@ -10,7 +10,8 @@ import platform
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        # Use SCALED for crisper resolution on web
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED if sys.platform == "emscripten" else 0)
         pygame.display.set_caption("Flappy Space: Enhanced Edition")
         self.clock = pygame.time.Clock()
         self.font_main = pygame.font.SysFont("Arial", 24, bold=True)
@@ -192,17 +193,20 @@ class Game:
         self.leaderboard_data = [] # Show loading
         
         async def fetch():
-            data = database.get_top_scores(level=self.level, limit=50)
-            # Filter unique users (keep highest score)
-            unique_data = {}
-            for entry in data:
-                user = entry['username']
-                if user not in unique_data or entry['score'] > unique_data[user]['score']:
-                    unique_data[user] = entry
-            
-            # Sort and take top 10
-            sorted_data = sorted(unique_data.values(), key=lambda x: x['score'], reverse=True)
-            self.leaderboard_data = sorted_data[:10]
+            if sys.platform == "emscripten":
+                self.leaderboard_data = await database.async_get_top_scores(level=self.level, limit=10)
+            else:
+                data = database.get_top_scores(level=self.level, limit=50)
+                # Filter unique users (keep highest score)
+                unique_data = {}
+                for entry in data:
+                    user = entry['username']
+                    if user not in unique_data or entry['score'] > unique_data[user]['score']:
+                        unique_data[user] = entry
+                
+                # Sort and take top 10
+                sorted_data = sorted(unique_data.values(), key=lambda x: x['score'], reverse=True)
+                self.leaderboard_data = sorted_data[:10]
             
         if sys.platform == "emscripten":
             asyncio.create_task(fetch())

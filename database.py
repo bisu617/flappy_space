@@ -115,6 +115,43 @@ def submit_score(name, score, level):
         print(f"Error submitting score: {e}")
         return False
 
+async def async_get_top_scores(level=None, limit=10):
+    """Asynchronously fetches top scores from Supabase for Web"""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return []
+        
+    query = f"select=*&order=score.desc&limit={limit*2}"
+    if level:
+        query += f"&level=eq.{level}"
+        
+    url = f"{SUPABASE_URL}/rest/v1/leaderboard?{query}"
+    
+    js_code = f"""
+    (async () => {{
+        const response = await fetch('{url}', {{
+            headers: {{
+                'apikey': '{SUPABASE_KEY}',
+                'Authorization': 'Bearer {SUPABASE_KEY}'
+            }}
+        }});
+        return await response.json();
+    }})()
+    """
+    try:
+        data = await platform.window.eval(js_code)
+        # Filter unique in JS result
+        unique_data = {}
+        for entry in data:
+            user = entry['username']
+            if user not in unique_data or entry['score'] > unique_data[user]['score']:
+                unique_data[user] = entry
+        
+        sorted_data = sorted(unique_data.values(), key=lambda x: x['score'], reverse=True)
+        return sorted_data[:limit]
+    except Exception as e:
+        print(f"Async fetch error: {e}")
+        return []
+
 def get_top_scores(level=None, limit=10):
     """Fetches top scores from Supabase, optionally filtered by level"""
     if not SUPABASE_URL or not SUPABASE_KEY:
